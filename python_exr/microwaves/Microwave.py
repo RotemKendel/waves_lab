@@ -7,7 +7,7 @@ from scipy.optimize import curve_fit
 # Get the absolute path to the CSV file
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
-csv_path = os.path.join("C:/Users/rotem/OneDrive - Technion/school - new/waves lab/waves_lab/python_exr", "microwave_waveguide_data.csv")
+csv_path = os.path.join("C:/Users/rotem/OneDrive - Technion/school - new/waves lab/waves_lab/python_exr/microwaves", "microwave_waveguide_data.csv")
 
 # Read the CSV file
 df = pd.read_csv(csv_path)
