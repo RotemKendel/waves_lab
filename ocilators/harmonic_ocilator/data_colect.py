@@ -1,9 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import os
 
-
-
+# Add the measurements directory to the path
+MEASUREMENTS_PATH = r"C:\Users\rotem\OneDrive - Technion\school - new\waves lab\waves_lab\ocilators\harmonic_ocilator\measurments"
 
 ## here we will collect the data from the harmonic oscillator
 # we will get the data at the lab
@@ -28,14 +29,14 @@ distance_between_points_error = total_points_distance_error / total_points_dista
 total_time = 10 # s
 # Import data from CSV files
 # No friction cases
-small_amp_no_friction = pd.read_csv('measurments/small_amp_no_friction.csv', header=None, names=['index', 'time', 'point'])
-mid_amp_no_friction = pd.read_csv('measurments/mid_amp_no_frictoion.csv', header=None, names=['index', 'time', 'point'])
-big_amp_no_friction = pd.read_csv('measurments/big_amp_no_friction.csv', header=None, names=['index', 'time', 'point'])
+small_amp_no_friction = pd.read_csv(os.path.join(MEASUREMENTS_PATH, 'small_amp_no_friction.csv'), header=None, names=['index', 'time', 'point'])
+mid_amp_no_friction = pd.read_csv(os.path.join(MEASUREMENTS_PATH, 'mid_amp_no_frictoion.csv'), header=None, names=['index', 'time', 'point'])
+big_amp_no_friction = pd.read_csv(os.path.join(MEASUREMENTS_PATH, 'big_amp_no_friction.csv'), header=None, names=['index', 'time', 'point'])
 
 # Friction cases
-big_amp_low_friction = pd.read_csv('measurments/big_amp_low_friction.csv', header=None, names=['index', 'time', 'point'])
-big_amp_mid_friction = pd.read_csv('measurments/big_amp_mid_friction.csv', header=None, names=['index', 'time', 'point'])
-big_amp_high_friction = pd.read_csv('measurments/bid_amp_high_friction.csv', header=None, names=['index', 'time', 'point'])
+big_amp_low_friction = pd.read_csv(os.path.join(MEASUREMENTS_PATH, 'big_amp_low_friction.csv'), header=None, names=['index', 'time', 'point'])
+big_amp_mid_friction = pd.read_csv(os.path.join(MEASUREMENTS_PATH, 'big_amp_mid_friction.csv'), header=None, names=['index', 'time', 'point'])
+big_amp_high_friction = pd.read_csv(os.path.join(MEASUREMENTS_PATH, 'bid_amp_high_friction.csv'), header=None, names=['index', 'time', 'point'])
 
 # Extract time and position data for each case
 # No friction cases
@@ -64,81 +65,118 @@ time_high_friction = big_amp_high_friction['time'].values
 point_high_friction = big_amp_high_friction['point'].values
 position_high_friction = point_high_friction * distance_between_points
 
-# no friction case - calclations
-def find_pics(point_amp,time_amp):
+#useful functions
+def find_frequency_and_damping(point_amp,time_amp):
+    """
+    This function finds the frequency of the oscillation
+    should be at least 2 pics to find the frequency
+    """
     pics_amp = 0
     new_pic = 0
     first_pic = 0
     last_pic = 0
-    for i in range(len(time_small_amp)):
+    for i in range(len(time_amp) - 1):
         if point_amp[i] >= point_amp[i-1] and point_amp[i] >= point_amp[i+1] and new_pic == 0:
             if first_pic == 0:
-                first_pic = time_amp[i]
+                first_pic = i
+            last_pic = i
             pics_amp += 1
             new_pic = 1
         if point_amp[i] < 0:
             new_pic = 0
-    frequency_amp = pics_amp / total_time
-    return frequency_amp
+    total_time = time_amp[last_pic] - time_amp[first_pic]
+    log_time_distance = np.log(time_amp[last_pic]) - np.log(time_amp[first_pic])
+    frequency_amp = (pics_amp - 1) / total_time
+    damping_amp = (point_amp[last_pic] - point_amp[first_pic]) / log_time_distance
+    return frequency_amp,damping_amp
 
-time = np.linspace(0, 10, 1000)
-x = np.sin(time)
-position_error = np.ones_like(x) * 0.1  # Create error array for position data
-# calclations
-Amplitude = np.max(x)
-Frequency = np.mean(x)
-phase = np.mean(x)
-sample_error_Amplitude = 0.1 # TODO: get the error from the lab
-sample_error_Frequency = 0.1 # TODO: get the error from the lab
-sample_error_phase = 0.1 # TODO: get the error from the lab
-#plot the data for sanity check
+def find_amplitude(point_amp):
+    """
+    This function finds the amplitude of the oscillation
+    """
+    amplitude_amp = np.max(point_amp) - np.min(point_amp)
+    return amplitude_amp
+
+
+# no friction case - calclations
+assert np.array_equal(time_big_amp, time_mid_amp) and np.array_equal(time_mid_amp, time_small_amp)
+time = time_big_amp
+
+frequency_small_amp,damping_small_amp = find_frequency_and_damping(point_small_amp,time_small_amp)
+amplitude_small_amp = find_amplitude(point_small_amp)
+frequency_mid_amp,damping_mid_amp = find_frequency_and_damping(point_mid_amp,time_mid_amp)
+amplitude_mid_amp = find_amplitude(point_mid_amp)
+frequency_big_amp,damping_big_amp = find_frequency_and_damping(point_big_amp,time_big_amp)
+amplitude_big_amp = find_amplitude(point_big_amp)
+amplitude_error = 2*distance_between_points_error
+
+frequency_error = 0 #TODO: find the error
+damping_error = 0 #TODO: find the error
+
 plt.figure(figsize=(12, 8))
-
-# Plot the position data
-plt.subplot(2, 1, 1)
-plt.plot(time, x, label="Position")
-plt.axhline(y=Amplitude, color='r', linestyle='--', label=f'Amplitude = {Amplitude:.2f}')
-plt.axhline(y=Frequency, color='g', linestyle='--', label=f'Frequency = {Frequency:.2f}')
-plt.axhline(y=phase, color='b', linestyle='--', label=f'Phase = {phase:.2f}')
-plt.title("Harmonic Oscillator Position and Parameters")
-plt.xlabel("Time")
-plt.ylabel("Position")
+plt.title("Harmonic Oscillator Position for different amplitudes with no friction", y=1.1)
+plt.gca().spines['top'].set_visible(False)
+plt.gca().spines['right'].set_visible(False)
+plt.gca().spines['bottom'].set_visible(False)
+plt.gca().spines['left'].set_visible(False)
+# Remove tick labels and marks from main figure
+plt.gca().set_xticklabels([])
+plt.gca().set_yticklabels([])
+plt.gca().set_xticks([])
+plt.gca().set_yticks([])
+#plot position
+plt.subplot(2, 2, 1)
+plt.plot(time, position_small_amp, '--g')
+plt.title("fig1 - small amplitude")
+plt.xlabel("Time[s]")
+plt.ylabel("Position[mm]")
+plt.gca().tick_params(direction='in', which='both', pad=-20)
+plt.gca().tick_params(axis='x', pad=-15)  # Additional padding for x-axis
+plt.gca().tick_params(axis='y', pad=-30)  # Additional padding for y-axis
+plt.gca().ticklabel_format(style='plain', useOffset=False)
 plt.legend()
-
-# Plot with error bars
-plt.subplot(2, 1, 2)
-plt.errorbar(time, x, yerr=position_error, label="Position")
-plt.axhline(y=Amplitude, color='r', linestyle='--', label=f'Amplitude = {Amplitude:.2f} ± {sample_error_Amplitude:.2f}')
-plt.axhline(y=Frequency, color='g', linestyle='--', label=f'Frequency = {Frequency:.2f} ± {sample_error_Frequency:.2f}')
-plt.axhline(y=phase, color='b', linestyle='--', label=f'Phase = {phase:.2f} ± {sample_error_phase:.2f}')
-plt.title("Harmonic Oscillator with Error Bars")
-plt.xlabel("Time")
-plt.ylabel("Position")
+plt.subplot(2, 2, 2)
+plt.plot(time, position_mid_amp, '--g')
+plt.title("fig2 - mid amplitude")
+plt.xlabel("Time[s]")
+plt.ylabel("Position[mm]")
+plt.gca().tick_params(direction='in', which='both', pad=-20)
+plt.gca().tick_params(axis='x', pad=-15)  # Additional padding for x-axis
+plt.gca().tick_params(axis='y', pad=-30)  # Additional padding for y-axis
+plt.gca().ticklabel_format(style='plain', useOffset=False)
 plt.legend()
+plt.subplot(2, 2, 3)
+plt.plot(time, position_big_amp, '--g')
+plt.title("fig3 - big amplitude")
+plt.xlabel("Time[s]")
+plt.ylabel("Position[mm]")
+plt.gca().tick_params(direction='in', which='both', pad=-20)
+plt.gca().tick_params(axis='x', pad=-15)  # Additional padding for x-axis
+plt.gca().tick_params(axis='y', pad=-30)  # Additional padding for y-axis
+plt.gca().ticklabel_format(style='plain', useOffset=False)
+plt.legend()
+plt.subplot(2, 2, 4)
+plt.title("captions")
+plt.gca().spines['top'].set_visible(False)
+plt.gca().spines['right'].set_visible(False)
+plt.gca().spines['bottom'].set_visible(False)
+plt.gca().spines['left'].set_visible(False)
+# Remove tick labels and marks from main figure
+plt.gca().set_xticklabels([])
+plt.gca().set_yticklabels([])
+plt.gca().set_xticks([])
+plt.gca().set_yticks([])
+plt.text(0.2, 0.9, f"fig1 - amplitude = {amplitude_small_amp:.2f} ± {amplitude_error:.2f} \n frequency = {frequency_small_amp:.2f} ± {frequency_error:.2f} \n damping = {damping_small_amp:.2f} ± {damping_error:.2f}",
+         transform=plt.gca().transAxes, verticalalignment='top', horizontalalignment='left')
+plt.text(0.9, 0.9, f"fig2 - amplitude = {amplitude_mid_amp:.2f} ± {amplitude_error:.2f} \n frequency = {frequency_mid_amp:.2f} ± {frequency_error:.2f} \n damping = {damping_mid_amp:.2f} ± {damping_error:.2f}",
+         transform=plt.gca().transAxes, verticalalignment='top', horizontalalignment='right')
+plt.text(0.2, 0.2, f"fig3 - amplitude = {amplitude_big_amp:.2f} ± {amplitude_error:.2f} \n frequency = {frequency_big_amp:.2f} ± {frequency_error:.2f} \n damping = {damping_big_amp:.2f} ± {damping_error:.2f}",
+         transform=plt.gca().transAxes, verticalalignment='bottom', horizontalalignment='left')
 
-plt.tight_layout()
-plt.show()
-
-#5.2 find K for two springs
-
-# fake data
-first_spring_weight = 10
-second_spring_weight = 20
-first_spring_extension = 0.05
-second_spring_extension = 0.1
-oscillator_weight = 10
-
-weight_error = 0.1
-extension_error = 0.01
-
-# calclations
-k_first_spring = first_spring_weight / first_spring_extension
-k_second_spring = second_spring_weight / second_spring_extension
-k_first_spring_error = weight_error / first_spring_extension
-k_second_spring_error = weight_error / second_spring_extension
+plt.subplots_adjust(wspace=0.4, hspace=0.4)  # Increase horizontal and vertical spacing
+plt.tight_layout()  # This ensures the subplots don't overlap
+plt.show()  # This will display the plot
 
 
-#5.3
 
-#5.4 - bound states
 
