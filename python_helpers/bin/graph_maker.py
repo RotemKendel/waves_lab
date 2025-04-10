@@ -1,10 +1,9 @@
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 
-def make_graph(csv_file, x_column, y_columns, caption, error_columns=None):
+def make_graph(csv_file, caption):
     """
-    Creates a scientific graph from CSV data according to strict requirements:
+    Creates a scientific graph from CSV data according to requirements:
     1. Font size: 11pt
     2. Proper axis scaling
     3. White background
@@ -18,13 +17,11 @@ def make_graph(csv_file, x_column, y_columns, caption, error_columns=None):
     
     Args:
         csv_file: Path to the CSV file containing the data
-        x_column: Name of the column to use for x-axis
-        y_columns: List of column names to plot on y-axis
         caption: Caption text to appear below the graph
-        error_columns: List of column names for error bars (optional)
     """
     # Read data from CSV
     df = pd.read_csv(csv_file)
+    assert len(df.columns) > 1, "CSV file must have at least two columns"
     
     # Set fixed font size to 11pt
     plt.rcParams.update({'font.size': 11})
@@ -32,19 +29,47 @@ def make_graph(csv_file, x_column, y_columns, caption, error_columns=None):
     # Create figure with white background
     fig, ax = plt.subplots(facecolor='white')
     
-    # Ensure y_columns is a list
-    if not isinstance(y_columns, list):
-        y_columns = [y_columns]
-    if error_columns is not None and not isinstance(error_columns, list):
-        error_columns = [error_columns]
+    # Get column names
+    columns = df.columns.tolist()
     
-    # Plot each y column
-    for i, y_col in enumerate(y_columns):
-        if error_columns and error_columns[i] is not None:
-            ax.errorbar(df[x_column], df[y_col], yerr=df[error_columns[i]], 
-                      fmt='o', capsize=3, label=y_col)
-        else:
-            ax.plot(df[x_column], df[y_col], 'o', label=y_col)
+    # First column is x-axis
+    x_column = columns[0]
+    assert x_column.lower().startswith("x"), "First column must be x-axis"
+    assert "[" in x_column and "]" in x_column, "X-axis column must include units in parentheses"
+    x_name = x_column[1:].strip()  # Remove first letter only
+    
+    # Process y-columns and their errors
+    y_columns = []
+    error_columns = []
+    y_names = []
+    
+    # Each y-column must have a corresponding error column
+    for i in range(1, len(columns), 2):
+        y_col = columns[i]
+        error_col = columns[i + 1] if i + 1 < len(columns) else None
+        
+        # Validate y-column
+        assert y_col.lower().startswith("y"), f"Column {y_col} must be a y-axis column"
+        assert "[" in y_col and "]" in y_col, f"Column {y_col} must include units in parentheses"
+        
+        # Validate error column
+        assert error_col is not None, f"Missing error column for {y_col}"
+        assert error_col.lower().startswith("error"), f"Column {error_col} must be an error column"
+        assert "[" in error_col and "]" in error_col, f"Column {error_col} must include units in parentheses"
+        
+        # Extract names (without prefix)
+        y_name = y_col[1:].split("[")[0].strip()
+        error_name = error_col[5:].split("[")[0].strip()
+        assert y_name == error_name, f"Y-column {y_col} and error column {error_col} must match"
+        
+        y_columns.append(y_col)
+        error_columns.append(error_col)
+        y_names.append(y_name)
+    
+    # Plot each y column with its error
+    for y_col, error_col in zip(y_columns, error_columns):
+        ax.errorbar(df[x_column], df[y_col], yerr=df[error_col], 
+                  fmt='o', capsize=3, label=y_col)
     
     # Set labels with units (using column names)
     ax.set_xlabel(x_column)
