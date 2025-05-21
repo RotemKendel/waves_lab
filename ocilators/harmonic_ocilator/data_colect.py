@@ -19,6 +19,7 @@ deltaMassK1 = 42.68 # g
 deltaMassK2 = 43.26 # g
 K1 = deltaMassK1 * G / L # N/m
 K2 = deltaMassK2 * G / L # N/m
+print(K1,K2)
 total_K = K1 + K2 # N/m
 trailar_mass = 0.2123 # Kg
 total_points_distance = 125 # mm
